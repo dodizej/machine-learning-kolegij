@@ -1,0 +1,3 @@
+module bolesti {
+	requires jFuzzyLogic;
+}

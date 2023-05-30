@@ -1,0 +1,158 @@
+
+
+FUNCTION_BLOCK tipper
+
+// Define input variables
+VAR_INPUT				
+	soreThroat   : REAL;
+	headache     : REAL;
+	temperature  : REAL;
+	fatigue      : REAL;
+	cough        : REAL;
+	chills		 : REAL;
+	nose         : REAL;
+	sneezing     : REAL;
+END_VAR
+
+// Define output variable
+VAR_OUTPUT				
+	decision : REAL;
+END_VAR
+
+FUZZIFY headache			
+	TERM weak     := (0, 1) (4, 0) ; 
+	TERM moderate := (1, 0) (4,1) (6,1) (9,0);
+	TERM severe   := (6, 0) (10, 1);
+END_FUZZIFY
+
+FUZZIFY fatigue			
+	TERM weak     := (0, 1) (4, 0); 
+	TERM present  := (1, 0) (8, 1) (10, 1);
+END_FUZZIFY
+
+
+FUZZIFY sneezing			
+	TERM weak     := (0, 1) (4, 0); 
+	TERM present  := (1, 0) (8, 1) (10, 1);
+END_FUZZIFY
+
+FUZZIFY soreThroat			
+	TERM weak     := (0, 1) (4, 0) ; 
+	TERM moderate := (1, 0) (4,1) (6,1) (9,0);
+	TERM severe   := (6, 0) (10, 1);
+END_FUZZIFY
+
+FUZZIFY temperature	
+	TERM normal   := (36, 1) (38, 0); 
+	TERM high     := (36, 0) (39,1) (41,0);
+	TERM veryHigh := (39, 0) (42, 1);
+END_FUZZIFY
+
+FUZZIFY chills			
+	TERM weak     := (0, 1) (4, 0); 
+	TERM present  := (1, 0) (8, 1) (10, 1);
+END_FUZZIFY
+
+FUZZIFY nose
+	TERM notRunny := (0, 1) (4, 0);
+	TERM runny    := (1, 0) (8, 1) (10, 1);
+END_FUZZIFY
+
+FUZZIFY cough			
+	TERM weak     := (0, 1) (4, 0) ; 
+	TERM moderate := (1, 0) (4,1) (6,1) (9,0);
+	TERM severe   := (6, 0) (10, 1);
+END_FUZZIFY
+
+DEFUZZIFY decision			
+	TERM cold   := (0,0)  (5,1)  (10,0);
+	TERM flu    := (10,0) (15,1) (20,0);
+	TERM covid  := (20,0) (25,1) (30,0);
+	TERM angina := (30,0) (35,1) (40,0);
+	
+	METHOD  : LM;
+	DEFAULT := -1;
+END_DEFUZZIFY
+
+RULEBLOCK No1
+	AND  : MIN;	
+	ACT  : MIN;	
+	ACCU : MAX;
+	OR   : MAX;
+	 
+	//COLD RULES
+	RULE 1 : IF   temperature IS normal   AND
+				  headache    IS moderate AND
+				  fatigue     IS present  AND
+				  nose        IS runny    AND
+				  sneezing    IS present  AND
+				  soreThroat  IS moderate AND
+				  cough	   	  IS moderate AND
+				  chills      IS weak
+			 THEN decision IS cold;
+			 
+	RULE 2 : IF   temperature IS normal   AND
+				  fatigue     IS present  AND
+				  nose        IS runny    AND
+				  sneezing    IS present  AND
+				  (soreThroat IS moderate OR soreThroat IS severe) AND
+				  cough	   	  IS moderate
+			 THEN decision IS cold WITH 0.8;
+			
+			 
+	//FLU RULES
+	RULE 3 : IF   temperature IS high     AND
+				  headache    IS severe   AND
+				  fatigue     IS present  AND
+				  nose        IS notRunny AND
+				  sneezing    IS weak     AND
+				  soreThroat  IS moderate AND
+				  (cough	  IS moderate OR  cough IS severe) AND
+				  chills      IS present
+			 THEN decision IS flu;
+			 
+	RULE 4 : IF   temperature IS high     AND
+				  (headache   IS severe   OR  headache IS moderate) AND
+				  fatigue     IS present  AND
+				  cough	      IS moderate
+			 THEN decision IS flu WITH 0.6;
+			 
+
+	//COVID RULES
+	RULE  5: IF   temperature IS high     AND
+				  headache    IS moderate AND
+				  fatigue     IS present  AND
+				  nose        IS runny    AND
+				  sneezing    IS weak     AND
+				  soreThroat  IS moderate AND
+				  (cough	  IS moderate OR  cough IS severe) AND
+				  chills      IS present
+			 THEN decision IS covid;
+			 
+	RULE  6: IF   temperature IS high     AND
+				  fatigue     IS present  AND
+				  (cough	  IS moderate OR  cough IS severe)
+			 THEN decision IS covid WITH 0.5;
+	
+	
+	//ANGINA RULES
+	RULE  7: IF   temperature IS high     AND
+				  headache    IS moderate AND
+				  fatigue     IS present  AND
+				  nose        IS notRunny AND
+				  sneezing    IS weak     AND
+				  soreThroat  IS severe   AND
+				  cough	   	  IS weak     AND
+				  chills      IS present
+			 THEN decision IS angina;
+			 
+	RULE  8: IF   temperature IS high     AND
+				  (headache   IS moderate OR headache    IS severe) AND
+				  fatigue     IS present  AND
+				  (soreThroat IS moderate OR soreThroat  IS severe)
+		 	 THEN decision IS angina WITH 0.7;
+	
+END_RULEBLOCK
+
+END_FUNCTION_BLOCK
+
